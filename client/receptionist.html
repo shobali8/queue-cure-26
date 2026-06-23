@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Receptionist — Queue Cure</title>
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
+    .row { display: flex; gap: 8px; }
+    .row input { flex: 1; }
+    input, button { font-size: 18px; padding: 10px; margin: 4px 0; }
+    button { cursor: pointer; border-radius: 8px; border: 1px solid #cbd5e1; }
+    #callNext { background: #2563eb; color: #fff; border: none;
+                padding: 16px; width: 100%; font-size: 20px; margin-top: 12px; }
+    .actions { display: flex; gap: 8px; margin-top: 8px; }
+    .actions button { flex: 1; }
+    #skipBtn { background: #fff7ed; border-color: #fdba74; }
+    #undoBtn { background: #fef2f2; border-color: #fca5a5; }
+    #undoBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .serving { font-size: 28px; font-weight: bold; color: #2563eb; }
+    .learn { background: #f1f5f9; padding: 10px; border-radius: 8px; margin-top: 16px; }
+    ul { list-style: none; padding: 0; }
+    li { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+         padding: 10px; margin: 6px 0; display: flex; justify-content: space-between;
+         align-items: center; }
+    .tok { font-weight: bold; color: #2563eb; }
+    .skipped-section h3 { color: #c2410c; }
+    .skipped-section li { background: #fff7ed; border-color: #fed7aa; }
+    .recallBtn { background: #dcfce7; border-color: #86efac; font-size: 14px; padding: 6px 12px; }
+  </style>
+</head>
+<body>
+  <h1>🩺 Receptionist</h1>
+
+  <div class="row">
+    <input id="nameInput" placeholder="Patient name" />
+    <button id="addBtn">Add</button>
+  </div>
+
+  <p>Avg consult time seed (min):
+    <input id="avgInput" type="number" value="10" style="width:70px" />
+    <button id="setAvgBtn">Set</button>
+  </p>
+
+  <p>Now serving: <span id="nowServing" class="serving">—</span></p>
+
+  <button id="callNext">📢 Call Next</button>
+  <div class="actions">
+    <button id="skipBtn">⏭️ Skip (no-show)</button>
+    <button id="undoBtn" disabled>↩️ Undo</button>
+  </div>
+
+  <div class="learn">
+    📊 Learned avg: <b id="learnedAvg">10</b> min
+    &nbsp;|&nbsp; from <b id="measured">0</b> real consultations
+  </div>
+
+  <h3>Waiting (<span id="waitingCount">0</span>)</h3>
+  <ul id="waitList"></ul>
+
+  <div class="skipped-section" id="skippedSection" style="display:none">
+    <h3>⏭️ Skipped — no-shows (<span id="skippedCount">0</span>)</h3>
+    <ul id="skipList"></ul>
+  </div>
+
+  <script src="http://localhost:4000/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io("http://localhost:4000");
+    const nameInput = document.getElementById("nameInput");
+
+    document.getElementById("addBtn").onclick = () => {
+      socket.emit("add_patient", nameInput.value.trim());
+      nameInput.value = "";
+      nameInput.focus();
+    };
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("addBtn").click();
+    });
+
+    document.getElementById("setAvgBtn").onclick = () => {
+      socket.emit("set_avg_time", document.getElementById("avgInput").value);
+    };
+    document.getElementById("callNext").onclick = () => socket.emit("call_next");
+    document.getElementById("skipBtn").onclick = () => socket.emit("skip_patient");
+    document.getElementById("undoBtn").onclick = () => socket.emit("undo_call");
+
+    socket.on("queue_state", (state) => {
+      document.getElementById("nowServing").textContent =
+        state.nowServing ? state.nowServing.number : "—";
+      document.getElementById("waitingCount").textContent = state.tokensAhead;
+      document.getElementById("learnedAvg").textContent = state.learnedAvg;
+      document.getElementById("measured").textContent = state.consultsMeasured;
+      document.getElementById("undoBtn").disabled = !state.canUndo;
+
+      // Waiting list
+      const list = document.getElementById("waitList");
+      list.innerHTML = "";
+      state.waiting.forEach((t) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="tok">Token ${t.number}</span><span>${t.name}</span>`;
+        list.appendChild(li);
+      });
+
+      // Skipped list (only show the section if there are skipped patients)
+      const skipList = document.getElementById("skipList");
+      const section = document.getElementById("skippedSection");
+      skipList.innerHTML = "";
+      document.getElementById("skippedCount").textContent = state.skipped.length;
+      section.style.display = state.skipped.length ? "block" : "none";
+      state.skipped.forEach((t) => {
+        const li = document.createElement("li");
+        li.innerHTML =
+          `<span><span class="tok">Token ${t.number}</span> &nbsp; ${t.name}</span>
+           <button class="recallBtn" onclick="recall(${t.number})">↩️ Recall</button>`;
+        skipList.appendChild(li);
+      });
+    });
+
+    // Called by the Recall buttons
+    function recall(number) {
+      socket.emit("recall_patient", number);
+    }
+  </script>
+</body>
+</html>

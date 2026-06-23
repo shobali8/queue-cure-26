@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Connection Test</title>
+  </head>
+  <body>
+    <h1>Socket connection test</h1>
+    <p id="status">Connecting...</p>
+
+    <!-- Loads the Socket.IO client library from your server -->
+    <script src="http://localhost:4000/socket.io/socket.io.js"></script>
+    <script>
+      // Dial in to the server
+      const socket = io("http://localhost:4000");
+
+      // When the connection succeeds, update the page
+      socket.on("connect", () => {
+        document.getElementById("status").textContent =
+          "✅ Connected! Socket ID: " + socket.id;
+      });
+    </script>
+  </body>
+</html>

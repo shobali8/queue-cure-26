@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Waiting Room — Queue Cure</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 60px; }
+    .label { color: #666; font-size: 18px; }
+    .now { font-size: 80px; font-weight: bold; color: #2563eb; margin: 8px 0; }
+    .stat { font-size: 36px; font-weight: bold; margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <div class="label">NOW SERVING</div>
+  <div class="now" id="nowServing">—</div>
+
+  <div class="label">Patients waiting</div>
+  <div class="stat" id="tokensAhead">0</div>
+
+  <div class="label">Estimated wait</div>
+  <div class="stat" id="estWait">0 min</div>
+
+  <script src="http://localhost:4000/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io("http://localhost:4000");
+
+    socket.on("queue_state", (state) => {
+      document.getElementById("nowServing").textContent =
+        state.nowServing ? state.nowServing.number : "—";
+      document.getElementById("tokensAhead").textContent = state.tokensAhead;
+      document.getElementById("estWait").textContent = state.estimatedWait + " min";
+    });
+  </script>
+</body>
+</html>
