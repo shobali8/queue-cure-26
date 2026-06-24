@@ -8,8 +8,8 @@
 
 ## 🖥️ Live Demo
 
-- **Receptionist view:** [queue-cure-26.vercel.app/receptionist.html](#) *(link after deployment)*
-- **Patient view:** [queue-cure-26.vercel.app/patient.html](#) *(link after deployment)*
+- **Receptionist view:** https://queue-cure-26-mu.vercel.app/receptionist.html
+- **Patient view:** https://queue-cure-26-mu.vercel.app/patient.html
 
 ---
 
