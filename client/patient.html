@@ -1,34 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Waiting Room — Queue Cure</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 60px; }
-    .label { color: #666; font-size: 18px; }
-    .now { font-size: 80px; font-weight: bold; color: #2563eb; margin: 8px 0; }
-    .stat { font-size: 36px; font-weight: bold; margin: 4px 0; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Waiting room · Queue Cure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper:   #FAFAF8;
+    --surface: #FFFFFF;
+    --ink:     #1A1D1A;
+    --muted:   #6B7280;
+    --line:    #E7E7E1;
+    --accent:  #2F6B5E;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .wordmark { display: flex; align-items: center; gap: 8px; }
+  .wordmark .tick { width: 7px; height: 7px; background: var(--accent); border-radius: 2px; }
+  .wordmark .name { font-size: 16px; font-weight: 600; }
+  .role { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+  main {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+  }
+
+  .eyebrow {
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 18px;
+  }
+  .token {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: clamp(96px, 22vw, 168px);
+    font-weight: 500; line-height: 0.9;
+    color: var(--ink);
+  }
+  .token.changing { animation: settle 0.35s ease-out; }
+  @keyframes settle {
+    from { opacity: 0.35; transform: translateY(6px); }
+    to   { opacity: 1;    transform: translateY(0); }
+  }
+  .who { font-size: 17px; color: var(--muted); margin-top: 14px; min-height: 24px; }
+
+  .meta {
+    display: flex; gap: 0;
+    margin-top: 52px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .meta .cell {
+    padding: 22px 40px;
+  }
+  .meta .cell + .cell { border-left: 1px solid var(--line); }
+  .meta .v { font-family: 'IBM Plex Mono', monospace; font-size: 34px; color: var(--accent); }
+  .meta .k { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+
+  .note { margin-top: 40px; font-size: 13px; color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .token.changing { animation: none; }
+  }
+</style>
 </head>
 <body>
-  <div class="label">NOW SERVING</div>
-  <div class="now" id="nowServing">—</div>
 
-  <div class="label">Patients waiting</div>
-  <div class="stat" id="tokensAhead">0</div>
+<header>
+  <div class="wordmark">
+    <span class="tick"></span>
+    <span class="name">Queue Cure</span>
+  </div>
+  <span class="role">Waiting room</span>
+</header>
 
-  <div class="label">Estimated wait</div>
-  <div class="stat" id="estWait">0 min</div>
+<main>
+  <div class="eyebrow">Now serving</div>
+  <div class="token" id="token">—</div>
+  <div class="who" id="who"></div>
 
-  <script src="http://localhost:4000/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io("http://localhost:4000");
+  <div class="meta">
+    <div class="cell">
+      <div class="v mono" id="ahead">0</div>
+      <div class="k">Ahead of you</div>
+    </div>
+    <div class="cell">
+      <div class="v mono" id="wait">0</div>
+      <div class="k">Est. wait (min)</div>
+    </div>
+  </div>
 
-    socket.on("queue_state", (state) => {
-      document.getElementById("nowServing").textContent =
-        state.nowServing ? state.nowServing.number : "—";
-      document.getElementById("tokensAhead").textContent = state.tokensAhead;
-      document.getElementById("estWait").textContent = state.estimatedWait + " min";
-    });
-  </script>
+  <div class="note">This screen updates on its own. No need to refresh.</div>
+</main>
+
+<script src="https://queue-cure-26-o307.onrender.com/socket.io/socket.io.js"></script>
+<script>
+  const socket = io("https://queue-cure-26-o307.onrender.com");
+  const token = document.getElementById("token");
+  let last = null;
+
+  socket.on("queue_state", (state) => {
+    const num = state.nowServing ? state.nowServing.number : "—";
+    const name = state.nowServing ? state.nowServing.name : "";
+
+    if (num !== last) {
+      token.classList.remove("changing");
+      void token.offsetWidth;
+      token.classList.add("changing");
+      last = num;
+    }
+
+    token.textContent = num;
+    document.getElementById("who").textContent = name;
+    document.getElementById("ahead").textContent = state.tokensAhead;
+    document.getElementById("wait").textContent = state.estimatedWait;
+  });
+</script>
 </body>
 </html>

@@ -1,123 +1,321 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Receptionist — Queue Cure</title>
-  <style>
-    body { font-family: sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
-    .row { display: flex; gap: 8px; }
-    .row input { flex: 1; }
-    input, button { font-size: 18px; padding: 10px; margin: 4px 0; }
-    button { cursor: pointer; border-radius: 8px; border: 1px solid #cbd5e1; }
-    #callNext { background: #2563eb; color: #fff; border: none;
-                padding: 16px; width: 100%; font-size: 20px; margin-top: 12px; }
-    .actions { display: flex; gap: 8px; margin-top: 8px; }
-    .actions button { flex: 1; }
-    #skipBtn { background: #fff7ed; border-color: #fdba74; }
-    #undoBtn { background: #fef2f2; border-color: #fca5a5; }
-    #undoBtn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .serving { font-size: 28px; font-weight: bold; color: #2563eb; }
-    .learn { background: #f1f5f9; padding: 10px; border-radius: 8px; margin-top: 16px; }
-    ul { list-style: none; padding: 0; }
-    li { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
-         padding: 10px; margin: 6px 0; display: flex; justify-content: space-between;
-         align-items: center; }
-    .tok { font-weight: bold; color: #2563eb; }
-    .skipped-section h3 { color: #c2410c; }
-    .skipped-section li { background: #fff7ed; border-color: #fed7aa; }
-    .recallBtn { background: #dcfce7; border-color: #86efac; font-size: 14px; padding: 6px 12px; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reception · Queue Cure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper:       #FAFAF8;
+    --surface:     #FFFFFF;
+    --ink:         #1A1D1A;
+    --muted:       #6B7280;
+    --line:        #E7E7E1;
+    --line-strong: #D6D6CE;
+    --accent:      #2F6B5E;
+    --accent-soft: #EDF3F0;
+    --clay:        #8A5A3B;
+    --clay-soft:   #F5EFE8;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .wordmark { display: flex; align-items: baseline; gap: 8px; }
+  .wordmark .name { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .wordmark .tick { width: 7px; height: 7px; background: var(--accent); border-radius: 2px; }
+  .role { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+  /* ── Layout ── */
+  main {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 36px 24px 80px;
+  }
+  section { margin-bottom: 36px; }
+  .divider { height: 1px; background: var(--line); margin: 36px 0; }
+
+  /* ── Add patient ── */
+  .field-row { display: flex; gap: 8px; margin-top: 12px; }
+  input[type="text"], input[type="number"] {
+    font-family: inherit; font-size: 15px; color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+    padding: 11px 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field-row input[type="text"] { flex: 1; }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: #9CA3AF; }
+
+  button { font-family: inherit; cursor: pointer; }
+
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    border: 1px solid var(--accent);
+    border-radius: 5px; padding: 11px 18px;
+    font-size: 15px; font-weight: 500;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover { background: #285c50; }
+
+  .seed { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .seed .label { margin-right: 2px; }
+  .seed input { width: 64px; text-align: center; }
+  .btn-quiet {
+    background: transparent; color: var(--accent);
+    border: 1px solid var(--line-strong);
+    border-radius: 5px; padding: 8px 14px;
+    font-size: 13px; font-weight: 500;
+    transition: border-color 0.15s;
+  }
+  .btn-quiet:hover { border-color: var(--accent); }
+
+  /* ── Now serving ── */
+  .serving {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    padding: 22px 24px;
+    display: flex; align-items: center; gap: 22px;
+  }
+  .serving .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 46px; font-weight: 500;
+    color: var(--accent); line-height: 1;
+    min-width: 64px;
+  }
+  .serving .meta .who { font-size: 16px; font-weight: 500; margin-bottom: 2px; }
+  .serving .meta .sub { font-size: 13px; color: var(--muted); }
+
+  .call {
+    width: 100%; margin-top: 14px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 6px;
+    padding: 16px; font-size: 16px; font-weight: 500;
+    letter-spacing: 0.01em;
+    transition: background 0.15s;
+  }
+  .call:hover { background: #285c50; }
+  .call:active { background: #224d43; }
+
+  .secondary-row { display: flex; gap: 10px; margin-top: 10px; }
+  .secondary-row button {
+    flex: 1; border-radius: 5px; padding: 11px;
+    font-size: 14px; font-weight: 500;
+    background: transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn-skip { color: var(--clay); border: 1px solid var(--line-strong); }
+  .btn-skip:hover { background: var(--clay-soft); border-color: #D8C4B0; }
+  .btn-undo { color: var(--muted); border: 1px solid var(--line-strong); }
+  .btn-undo:hover:not(:disabled) { background: #F3F3EE; }
+  .btn-undo:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Lists ── */
+  .list-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 14px; }
+  .list-head .count { font-size: 13px; color: var(--muted); }
+  ul { list-style: none; }
+  .row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: none; }
+  .row .rnum { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent); min-width: 34px; }
+  .row .rname { font-size: 15px; }
+  .row .rwait { margin-left: auto; font-size: 13px; color: var(--muted); }
+  .empty { font-size: 14px; color: var(--muted); padding: 8px 4px; }
+
+  .recall {
+    margin-left: auto;
+    background: transparent; color: var(--accent);
+    border: 1px solid var(--line-strong);
+    border-radius: 5px; padding: 6px 12px;
+    font-size: 13px; font-weight: 500;
+    transition: border-color 0.15s;
+  }
+  .recall:hover { border-color: var(--accent); }
+  .skipped .rnum { color: var(--clay); }
+
+  /* ── Stats footer ── */
+  .stats {
+    display: flex; gap: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    margin-top: 8px;
+  }
+  .stat .v { font-family: 'IBM Plex Mono', monospace; font-size: 20px; color: var(--ink); }
+  .stat .k { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+</style>
 </head>
 <body>
-  <h1>🩺 Receptionist</h1>
 
-  <div class="row">
-    <input id="nameInput" placeholder="Patient name" />
-    <button id="addBtn">Add</button>
+<header>
+  <div class="wordmark">
+    <span class="tick"></span>
+    <span class="name">Queue Cure</span>
+  </div>
+  <span class="role">Reception</span>
+</header>
+
+<main>
+
+  <section>
+    <span class="label">Add patient</span>
+    <div class="field-row">
+      <input type="text" id="nameInput" placeholder="Patient name" autocomplete="off" />
+      <button class="btn-primary" id="addBtn">Add</button>
+    </div>
+    <div class="seed">
+      <span class="label">Avg consult time</span>
+      <input type="number" id="avgInput" value="10" min="1" />
+      <span class="label" style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">min</span>
+      <button class="btn-quiet" id="setAvgBtn">Set</button>
+    </div>
+  </section>
+
+  <section>
+    <span class="label">Now serving</span>
+    <div class="serving" style="margin-top:12px;">
+      <div class="num" id="nowServing">—</div>
+      <div class="meta">
+        <div class="who" id="servingName">No patient yet</div>
+        <div class="sub">Current consultation</div>
+      </div>
+    </div>
+    <button class="call" id="callNext">Call next patient</button>
+    <div class="secondary-row">
+      <button class="btn-skip" id="skipBtn">Skip · no-show</button>
+      <button class="btn-undo" id="undoBtn" disabled>Undo last call</button>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="list-head">
+      <span class="label">Waiting</span>
+      <span class="count" id="waitingCount">0</span>
+    </div>
+    <ul id="waitList">
+      <li class="empty">No patients in the queue.</li>
+    </ul>
+  </section>
+
+  <section id="skippedSection" style="display:none;">
+    <div class="list-head">
+      <span class="label" style="color:var(--clay)">Skipped · no-shows</span>
+      <span class="count" id="skippedCount">0</span>
+    </div>
+    <ul id="skipList" class="skipped"></ul>
+  </section>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="v mono" id="learnedAvg">10</div>
+      <div class="k">Learned avg (min)</div>
+    </div>
+    <div class="stat">
+      <div class="v mono" id="measured">0</div>
+      <div class="k">Consultations</div>
+    </div>
   </div>
 
-  <p>Avg consult time seed (min):
-    <input id="avgInput" type="number" value="10" style="width:70px" />
-    <button id="setAvgBtn">Set</button>
-  </p>
+</main>
 
-  <p>Now serving: <span id="nowServing" class="serving">—</span></p>
+<script src="https://queue-cure-26-o307.onrender.com/socket.io/socket.io.js"></script>
+<script>
+  const socket = io("https://queue-cure-26-o307.onrender.com");
+  const nameInput = document.getElementById("nameInput");
 
-  <button id="callNext">📢 Call Next</button>
-  <div class="actions">
-    <button id="skipBtn">⏭️ Skip (no-show)</button>
-    <button id="undoBtn" disabled>↩️ Undo</button>
-  </div>
+  document.getElementById("addBtn").onclick = () => {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    socket.emit("add_patient", name);
+    nameInput.value = "";
+    nameInput.focus();
+  };
+  nameInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("addBtn").click();
+  });
+  document.getElementById("setAvgBtn").onclick = () =>
+    socket.emit("set_avg_time", document.getElementById("avgInput").value);
+  document.getElementById("callNext").onclick = () => socket.emit("call_next");
+  document.getElementById("skipBtn").onclick = () => socket.emit("skip_patient");
+  document.getElementById("undoBtn").onclick = () => socket.emit("undo_call");
 
-  <div class="learn">
-    📊 Learned avg: <b id="learnedAvg">10</b> min
-    &nbsp;|&nbsp; from <b id="measured">0</b> real consultations
-  </div>
+  socket.on("queue_state", (state) => {
+    document.getElementById("nowServing").textContent =
+      state.nowServing ? state.nowServing.number : "—";
+    document.getElementById("servingName").textContent =
+      state.nowServing ? state.nowServing.name : "No patient yet";
+    document.getElementById("waitingCount").textContent = state.tokensAhead;
+    document.getElementById("learnedAvg").textContent = state.learnedAvg;
+    document.getElementById("measured").textContent = state.consultsMeasured;
+    document.getElementById("undoBtn").disabled = !state.canUndo;
 
-  <h3>Waiting (<span id="waitingCount">0</span>)</h3>
-  <ul id="waitList"></ul>
-
-  <div class="skipped-section" id="skippedSection" style="display:none">
-    <h3>⏭️ Skipped — no-shows (<span id="skippedCount">0</span>)</h3>
-    <ul id="skipList"></ul>
-  </div>
-
-  <script src="http://localhost:4000/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io("http://localhost:4000");
-    const nameInput = document.getElementById("nameInput");
-
-    document.getElementById("addBtn").onclick = () => {
-      socket.emit("add_patient", nameInput.value.trim());
-      nameInput.value = "";
-      nameInput.focus();
-    };
-    nameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") document.getElementById("addBtn").click();
-    });
-
-    document.getElementById("setAvgBtn").onclick = () => {
-      socket.emit("set_avg_time", document.getElementById("avgInput").value);
-    };
-    document.getElementById("callNext").onclick = () => socket.emit("call_next");
-    document.getElementById("skipBtn").onclick = () => socket.emit("skip_patient");
-    document.getElementById("undoBtn").onclick = () => socket.emit("undo_call");
-
-    socket.on("queue_state", (state) => {
-      document.getElementById("nowServing").textContent =
-        state.nowServing ? state.nowServing.number : "—";
-      document.getElementById("waitingCount").textContent = state.tokensAhead;
-      document.getElementById("learnedAvg").textContent = state.learnedAvg;
-      document.getElementById("measured").textContent = state.consultsMeasured;
-      document.getElementById("undoBtn").disabled = !state.canUndo;
-
-      // Waiting list
-      const list = document.getElementById("waitList");
+    const list = document.getElementById("waitList");
+    if (state.waiting.length === 0) {
+      list.innerHTML = '<li class="empty">No patients in the queue.</li>';
+    } else {
       list.innerHTML = "";
-      state.waiting.forEach((t) => {
+      state.waiting.forEach((t, i) => {
+        const wait = Math.round((i + 1) * state.learnedAvg);
         const li = document.createElement("li");
-        li.innerHTML = `<span class="tok">Token ${t.number}</span><span>${t.name}</span>`;
+        li.className = "row";
+        li.innerHTML =
+          `<span class="rnum">${t.number}</span>
+           <span class="rname">${t.name}</span>
+           <span class="rwait mono">~${wait} min</span>`;
         list.appendChild(li);
       });
-
-      // Skipped list (only show the section if there are skipped patients)
-      const skipList = document.getElementById("skipList");
-      const section = document.getElementById("skippedSection");
-      skipList.innerHTML = "";
-      document.getElementById("skippedCount").textContent = state.skipped.length;
-      section.style.display = state.skipped.length ? "block" : "none";
-      state.skipped.forEach((t) => {
-        const li = document.createElement("li");
-        li.innerHTML =
-          `<span><span class="tok">Token ${t.number}</span> &nbsp; ${t.name}</span>
-           <button class="recallBtn" onclick="recall(${t.number})">↩️ Recall</button>`;
-        skipList.appendChild(li);
-      });
-    });
-
-    // Called by the Recall buttons
-    function recall(number) {
-      socket.emit("recall_patient", number);
     }
-  </script>
+
+    const skipList = document.getElementById("skipList");
+    const section = document.getElementById("skippedSection");
+    document.getElementById("skippedCount").textContent = state.skipped.length;
+    section.style.display = state.skipped.length ? "block" : "none";
+    skipList.innerHTML = "";
+    state.skipped.forEach((t) => {
+      const li = document.createElement("li");
+      li.className = "row";
+      li.innerHTML =
+        `<span class="rnum">${t.number}</span>
+         <span class="rname">${t.name}</span>
+         <button class="recall" onclick="recall(${t.number})">Recall</button>`;
+      skipList.appendChild(li);
+    });
+  });
+
+  function recall(number) { socket.emit("recall_patient", number); }
+</script>
 </body>
 </html>
